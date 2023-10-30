@@ -1,0 +1,97 @@
+Exemplo 1 
+
+-- Tabela pedidos
+CREATE TABLE tb_pedidos (
+id_pedido INT AUTO_INCREMENT PRIMARY KEY,
+dt_pedido DATETIME,
+nome_cliente VARCHAR(100)
+);
+
+-- Trigger 
+DELIMITER $$
+
+CREATE TRIGGER RegistroDataCriacaoPedido
+BEFORE INSERT ON tb_pedidos
+FOR EACH ROW 
+BEGIN
+    SET NEW.dt_pedido = NOW();
+END;
+$$
+
+DELIMITER ;
+
+-- Fornecendo a data 
+INSERT INTO tb_pedidos (dt_pedido, nome_cliente) VALUES 
+(NOW(), 'Cliente 1'),
+(NOW(), 'Cliente 2'),
+(NOW(), 'Cliente 3');
+
+-- Sem fornecer a data
+INSERT INTO tb_pedidos (nome_cliente) VALUES ('Novo cliente');
+
+SELECT * FROM tb_pedidos;
+
+
+
+Exemplo 2 
+
+
+-- Tabela filmes
+CREATE TABLE tb_filmes (
+id_filme INT AUTO_INCREMENT PRIMARY KEY,
+título   VARCHAR(60),
+minutos  INT
+);
+
+-- Tabela log
+CREATE TABLE tb_log_delet (
+id      INT AUTO_INCREMENT PRIMARY KEY, 
+título  VARCHAR(60),
+quando  DATETIME,
+quem    VARCHAR(40)
+);
+
+-- Trigger - Erro
+DELIMITER $$
+
+CREATE TRIGGER chk_minutos 
+BEFORE INSERT ON tb_filmes
+FOR EACH ROW 
+BEGIN 
+  IF NEW.minutos < 0 THEN
+      SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Valor inválido para minutos!',
+      MYSQL_ERRNO = 2022;
+  END IF;
+END 
+$$
+
+-- Trigger - log_delet
+CREATE TRIGGER log_delet
+AFTER DELETE ON tb_filmes
+FOR EACH ROW
+BEGIN 
+     INSERT INTO tb_log_delet VALUES (NULL, OLD.título, SYSDATE(), USER());
+END 
+$$
+
+DELIMITER ;
+
+
+INSERT INTO tb_filmes (título, minutos) VALUES 
+("The terrible trigger" , 120),
+("O alto da compadecida", 135),
+("Faroeste caboclo" , 240),
+("The matrix" , 90),
+("O labirinto do fauno" , 110),
+("Metropole" , 0),
+("A lista" , 120),
+("Blade runner" , -88);
+
+
+SELECT * FROM tb_filmes;
+
+DELETE FROM tb_filmes WHERE id_filme = 2;
+DELETE FROM tb_filmes WHERE id_filme = 4;
+
+SELECT * FROM tb_log_delet;
